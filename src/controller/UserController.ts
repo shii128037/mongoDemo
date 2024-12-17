@@ -40,5 +40,20 @@ export class UserController extends Contorller {
         Response.status(resp.code).send(resp)
     }
 
+    // 更新指定學生資料
+    public async update(req: Request, res: Response) {
+        const id = req.params.id; // 取得學生的 ID
+        const updateData = req.body; // 要更新的資料
 
+        const response = await this.service.updateOne(id, updateData);
+        res.status(response.code).send(response);
+    }
+
+    // 刪除指定學生資料
+    public async delete(req: Request, res: Response) {
+        const id = req.params.id; // 取得學生的 ID
+
+        const response = await this.service.deleteOne(id);
+        res.status(response.code).send(response);
+    }
 }

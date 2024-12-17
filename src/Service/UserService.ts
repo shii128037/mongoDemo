@@ -8,21 +8,21 @@ import { DBResp } from "../interfaces/DBResp";
 import { resp } from "../utils/resp";
 
 type seatInfo = {
-    schoolName:string,
-    department:string,
-    seatNumber:string
+    schoolName: string,
+    department: string,
+    seatNumber: string
 }
 
 export class UserService extends Service {
 
-    public async getAllStudents(): Promise<Array<DBResp<Student>>|undefined> {
+    public async getAllStudents(): Promise<Array<DBResp<Student>> | undefined> {
         try {
-            const res:Array<DBResp<Student>> = await studentsModel.find({});
+            const res: Array<DBResp<Student>> = await studentsModel.find({});
             return res;
         } catch (error) {
             return undefined;
         }
-        
+
     }
 
     /**
@@ -30,43 +30,91 @@ export class UserService extends Service {
      * @param info 學生資訊
      * @returns resp
      */
-    public async insertOne(info: Student): Promise<resp<DBResp<Student>|undefined>>{
+    public async insertOne(info: Student): Promise<resp<DBResp<Student> | undefined>> {
 
         const current = await this.getAllStudents()
-        const resp:resp<DBResp<Student>|undefined> = {
+        const resp: resp<DBResp<Student> | undefined> = {
             code: 200,
             message: "",
             body: undefined
         }
 
-        if (current && current.length>0) {
-            try{
+        if (current && current.length > 0) {
+            try {
                 const nameValidator = await this.userNameValidator(info.userName);
-                if (current.length>=200) {
+                if (current.length >= 200) {
                     resp.message = "student list is full";
                     resp.code = 403;
-                }else{
+                } else {
                     if (nameValidator === "驗證通過") {
-                        info.sid = String(current.length+1) ;
+                        info.sid = String(current.length + 1);
                         info._id = undefined;
                         const res = new studentsModel(info);
                         resp.body = await res.save();
-                    }else{
+                    } else {
                         resp.code = 403;
                         resp.message = nameValidator;
                     }
                 }
-            } catch(error){
+            } catch (error) {
                 resp.message = "server error";
                 resp.code = 500;
             }
-        }else{
+        } else {
             resp.message = "server error";
             resp.code = 500;
         }
 
         return resp;
 
+    }
+
+    // 更新學生資料
+    public async updateOne(id: string, updateData: Partial<Student>): Promise<resp<DBResp<Student> | undefined>> {
+        const response: resp<DBResp<Student> | undefined> = {
+            code: 200,
+            message: "更新成功",
+            body: undefined,
+        };
+
+        try {
+            const updatedStudent = await studentsModel.findByIdAndUpdate(id, updateData, { new: true });
+            if (updatedStudent) {
+                response.body = updatedStudent;
+            } else {
+                response.code = 404;
+                response.message = "找不到該學生資料";
+            }
+        } catch (error) {
+            response.code = 500;
+            response.message = "更新失敗，伺服器錯誤";
+        }
+
+        return response;
+    }
+
+    // 刪除學生資料
+    public async deleteOne(id: string): Promise<resp<DBResp<Student> | undefined>> {
+        const response: resp<DBResp<Student> | undefined> = {
+            code: 200,
+            message: "刪除成功",
+            body: undefined,
+        };
+
+        try {
+            const deletedStudent = await studentsModel.findByIdAndDelete(id);
+            if (deletedStudent) {
+                response.body = deletedStudent;
+            } else {
+                response.code = 404;
+                response.message = "找不到該學生資料";
+            }
+        } catch (error) {
+            response.code = 500;
+            response.message = "刪除失敗，伺服器錯誤";
+        }
+
+        return response;
     }
 
     /**
@@ -78,10 +126,10 @@ export class UserService extends Service {
      * 座號檢查，跟之前有重複就噴錯  只能寫沒重複的號碼
      */
     public async userNameValidator(userName: string): Promise<
-    '學生名字格式不正確，應為 tku + 科系縮寫 + 四碼座號，例如: tkubm1760' | '座號已存在' | '校名必須為 tku' | '座號格式不正確，必須為四位數字。' | '驗證通過'
+        '學生名字格式不正確，應為 tku + 科系縮寫 + 四碼座號，例如: tkubm1760' | '座號已存在' | '校名必須為 tku' | '座號格式不正確，必須為四位數字。' | '驗證通過'
     > {
 
-        if (userName.length < 7) { 
+        if (userName.length < 7) {
             return ('學生名字格式不正確，應為 tku + 科系縮寫 + 四碼座號，例如: tkubm1760');
         }
 
@@ -90,10 +138,10 @@ export class UserService extends Service {
         if (info.schoolName !== 'tku') {
             return '校名必須為 tku';
         }
-    
+
         // 驗證座號(正則不想寫可以給 gpt 寫, 記得測試就好)
         const seatNumberPattern = /^\d{4}$/; // 驗證4個數字
-        
+
         if (!seatNumberPattern.test(info.seatNumber)) {
             return '座號格式不正確，必須為四位數字。';
         }
@@ -103,7 +151,7 @@ export class UserService extends Service {
         }
 
         return '驗證通過'
-        
+
     }
 
     /**
@@ -111,8 +159,8 @@ export class UserService extends Service {
      * @param userName 用戶名
      * @returns seatInfo
      */
-    public userNameFormator(userName: string){
-        const info:seatInfo = {
+    public userNameFormator(userName: string) {
+        const info: seatInfo = {
             schoolName: userName.slice(0, 3),
             department: userName.slice(3, userName.length - 4),
             seatNumber: userName.slice(-4)
@@ -125,11 +173,11 @@ export class UserService extends Service {
      * @param SeatNumber 
      * @returns boolean
      */
-    public async existingSeatNumbers(SeatNumber:string):Promise<boolean>{
+    public async existingSeatNumbers(SeatNumber: string): Promise<boolean> {
         const students = await this.getAllStudents();
         let exist = false
         if (students) {
-            students.forEach((student)=>{
+            students.forEach((student) => {
                 const info = this.userNameFormator(student.userName)
                 if (info.seatNumber === SeatNumber) {
                     exist = true;
